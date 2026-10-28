@@ -1,0 +1,1045 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pegon & Arabic Block Studio & Cropper</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Amiri (Arabic), Noto Sans Arabic, Plus Jakarta Sans -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&family=Noto+Sans+Arabic:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                        arabic: ['Amiri', 'Noto Sans Arabic', 'serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#ecfdf5',
+                            100: '#d1fae5',
+                            500: '#10b981',
+                            600: '#059669',
+                            700: '#047857',
+                            800: '#065f46',
+                            900: '#064e3b',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom scrollbars for clean UI */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.03);
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(148, 163, 184, 0.4);
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(100, 116, 139, 0.6);
+        }
+        .dark ::-webkit-scrollbar-track {
+            background: rgba(255,255,255,0.03);
+        }
+        .dark ::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.2);
+        }
+
+        /* Dotted Grid Pattern for Canvas Wrapper */
+        .bg-grid-pattern {
+            background-image: radial-gradient(circle, #cbd5e1 1.5px, transparent 1.5px);
+            background-size: 24px 24px;
+        }
+        .dark .bg-grid-pattern {
+            background-image: radial-gradient(circle, #334155 1.5px, transparent 1.5px);
+        }
+
+        /* Arabic Typography */
+        .arabic-text {
+            font-family: 'Amiri', 'Noto Sans Arabic', serif;
+            direction: rtl;
+            unicode-bidi: isolate;
+        }
+
+        /* Smooth Dragging Shadow & Animations */
+        .block-card {
+            transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+            user-select: none;
+            touch-action: manipulation;
+        }
+        .block-card:hover {
+            transform: translateY(-2px);
+        }
+        .block-card:active {
+            transform: scale(0.95);
+        }
+
+        /* Crop Box Handles */
+        .crop-handle {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background-color: #3b82f6;
+            border: 2px solid #ffffff;
+            border-radius: 50%;
+            z-index: 30;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+
+        /* Glassmorphism styling */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+        }
+        .dark .glass-panel {
+            background: rgba(30, 41, 59, 0.85);
+            backdrop-filter: blur(12px);
+        }
+    </style>
+</head>
+<body class="bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-100 font-sans min-h-screen flex flex-col transition-colors duration-300">
+
+    <!-- Header / Top Navbar -->
+    <header class="glass-panel sticky top-0 z-40 border-b border-slate-200/80 dark:border-slate-800/80 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-white font-bold text-2xl shadow-md shadow-emerald-500/20 font-arabic">
+                    ݞ
+                </div>
+                <div>
+                    <h1 class="font-bold text-base sm:text-lg leading-tight tracking-tight">Pegon & Arabic Block Studio</h1>
+                    <p class="text-[11px] text-slate-500 dark:text-slate-400 font-medium">Susun Blok Huruf, Harakat & Crop PNG Realtime</p>
+                </div>
+            </div>
+
+            <!-- Header Action Controls -->
+            <div class="flex items-center gap-2">
+                <button id="btn-theme-toggle" class="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors" title="Ubah Mode Gelap/Terang">
+                    <svg id="theme-icon-sun" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                    <svg id="theme-icon-moon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+                </button>
+
+                <button id="btn-clear-all" class="px-3.5 py-2 text-xs font-semibold rounded-xl text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/60 transition-colors flex items-center gap-1.5 border border-rose-200/60 dark:border-rose-900/40">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                    <span>Reset Canvas</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Workspace Container -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-5 lg:p-6 flex flex-col gap-5">
+        
+        <!-- CANVAS & LIVE PREVIEW AREA -->
+        <section class="bg-white dark:bg-slate-800/90 rounded-2xl p-4 sm:p-5 shadow-sm border border-slate-200/80 dark:border-slate-700/80 flex flex-col gap-3">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center gap-2">
+                    <span class="w-3 h-3 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <h2 class="text-xs sm:text-sm font-bold tracking-tight uppercase text-slate-700 dark:text-slate-300">1. Realtime Arabic/Pegon Canvas & Crop Tool</h2>
+                </div>
+
+                <!-- Formatting Controls -->
+                <div class="flex flex-wrap items-center gap-2 text-xs">
+                    <!-- Background Style Selector -->
+                    <div class="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-700/80 px-2.5 py-1.5 rounded-xl">
+                        <span class="text-slate-500 dark:text-slate-400 font-medium">Latar:</span>
+                        <select id="canvas-bg-picker" class="bg-transparent text-slate-800 dark:text-slate-100 font-semibold focus:outline-none cursor-pointer">
+                            <option value="auto">Tema (Otomatis)</option>
+                            <option value="#ffffff">Putih Bersih</option>
+                            <option value="transparent">Transparan (PNG)</option>
+                            <option value="#0f172a">Gelap Slate</option>
+                            <option value="#fffbeb">Kertas Warm (Cream)</option>
+                        </select>
+                    </div>
+
+                    <!-- Font Size Slider -->
+                    <div class="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-700/80 px-2.5 py-1.5 rounded-xl">
+                        <span class="text-slate-500 dark:text-slate-400 font-medium">Ukuran:</span>
+                        <input type="range" id="font-size-slider" min="36" max="140" value="80" class="w-16 sm:w-24 accent-emerald-500 cursor-pointer">
+                        <span id="font-size-val" class="font-bold w-6 text-center text-emerald-600 dark:text-emerald-400">80</span>
+                    </div>
+                    
+                    <!-- Text Color Picker -->
+                    <div class="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-700/80 px-2.5 py-1.5 rounded-xl">
+                        <span class="text-slate-500 dark:text-slate-400 font-medium">Warna:</span>
+                        <input type="color" id="text-color-picker" value="#0f172a" class="w-5 h-5 rounded cursor-pointer border-0 bg-transparent">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Canvas Viewport with Crop Overlay -->
+            <div class="relative w-full overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700 bg-grid-pattern min-h-[220px] sm:min-h-[260px] flex items-center justify-center select-none" id="canvas-wrapper">
+                
+                <!-- Main Renderer Canvas -->
+                <canvas id="main-canvas" class="block max-w-full h-auto rounded-lg shadow-inner"></canvas>
+
+                <!-- Interactive Crop Box -->
+                <div id="crop-box" class="absolute border-2 border-dashed border-blue-500 bg-blue-500/10 cursor-move" style="width: 260px; height: 150px; top: 55px; left: 50px;">
+                    <div class="absolute inset-0 flex items-center justify-center pointer-events-none opacity-25">
+                        <div class="w-full h-[1px] bg-blue-500"></div>
+                        <div class="h-full w-[1px] bg-blue-500 absolute"></div>
+                    </div>
+                    <!-- 4 Handles Corner -->
+                    <div class="crop-handle -top-1.5 -left-1.5 cursor-nwse-resize" data-handle="nw"></div>
+                    <div class="crop-handle -top-1.5 -right-1.5 cursor-nesw-resize" data-handle="ne"></div>
+                    <div class="crop-handle -bottom-1.5 -left-1.5 cursor-nesw-resize" data-handle="sw"></div>
+                    <div class="crop-handle -bottom-1.5 -right-1.5 cursor-nwse-resize" data-handle="se"></div>
+                </div>
+            </div>
+
+            <!-- Quick Canvas Toolbar -->
+            <div class="flex flex-wrap items-center justify-between gap-3 pt-1">
+                <div class="flex items-center gap-2">
+                    <button id="btn-toggle-crop" class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-700/80 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 transition-all flex items-center gap-1.5 border border-slate-200/60 dark:border-slate-600/40">
+                        <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2 1m0 0L10 4m2 1v2.5M4 7l2 1m-2-1l2-1m-2 1v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1m2 1l2-1m-2 1v-2.5M18 18l-2-1m2 1l2-1m-2 1v-2.5"></path></svg>
+                        <span id="crop-btn-text">Bingkai Crop Aktif</span>
+                    </button>
+
+                    <button id="btn-copy-text" class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-700/80 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 transition-all flex items-center gap-1.5 border border-slate-200/60 dark:border-slate-600/40">
+                        <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                        Salin Unicode
+                    </button>
+                </div>
+
+                <button id="btn-download-crop" class="px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-md shadow-emerald-600/20 transition-all flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                    <span>Crop & Download PNG</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- ACTIVE ASSEMBLY BOARD (RTL Stack / Drag-Drop) -->
+        <section class="bg-white dark:bg-slate-800/90 rounded-2xl p-4 sm:p-5 shadow-sm border border-slate-200/80 dark:border-slate-700/80">
+            <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
+                    <h2 class="text-xs sm:text-sm font-bold tracking-tight uppercase text-slate-700 dark:text-slate-300">2. Papan Susunan Blok Aktif (RTL - Kanan ke Kiri)</h2>
+                </div>
+                <span class="text-[11px] text-slate-400 font-medium hidden sm:inline">Tarik blok untuk mengubah urutan • Tekan X untuk menghapus</span>
+            </div>
+
+            <!-- Reorderable Drag/Drop Area for Blocks (RTL Layout) -->
+            <div id="assembly-board" class="min-h-[105px] p-3 rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-700/80 bg-slate-50/70 dark:bg-slate-900/40 flex items-center justify-end gap-2 overflow-x-auto flex-row-reverse scrollbar-thin">
+                <div id="empty-state" class="w-full text-center py-5 text-slate-400 dark:text-slate-500 text-xs flex flex-col items-center gap-1.5">
+                    <svg class="w-7 h-7 opacity-50 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <span>Belum ada blok tersusun. Klik tombol pada <strong>Toolbar Opsi Horizontal</strong> di bawah ini untuk menambahkan huruf & harakat.</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- HORIZONTAL OPTION TOOLBAR (COMPLETE SELECTION PANEL) -->
+        <section class="bg-white dark:bg-slate-800/90 rounded-2xl p-4 sm:p-5 shadow-sm border border-slate-200/80 dark:border-slate-700/80 flex flex-col gap-3">
+            
+            <!-- Category Tabs Header -->
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-700 pb-3">
+                <div class="flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                    <h2 class="text-xs sm:text-sm font-bold tracking-tight uppercase text-slate-700 dark:text-slate-300">3. Toolbar Opsi Horisontal & Katalog Lengkap</h2>
+                </div>
+
+                <!-- Search Input -->
+                <div class="w-full sm:w-60 relative">
+                    <input type="text" id="search-blocks" placeholder="Cari (cth: Alif, Ba, Cha, Fathah)..." class="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-100 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50 text-slate-800 dark:text-slate-200">
+                    <svg class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                </div>
+            </div>
+
+            <!-- Horizontal Tab Navigation Bar -->
+            <div class="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-thin" id="block-tabs">
+                <button data-tab="hijaiyah" class="tab-btn px-4 py-2 text-xs font-bold rounded-xl bg-emerald-500 text-white shadow-sm flex-shrink-0 flex items-center gap-1.5">
+                    <span>🔤</span> Huruf Hijaiyah Utama (29)
+                </button>
+                <button data-tab="pegon" class="tab-btn px-4 py-2 text-xs font-bold rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 flex-shrink-0 flex items-center gap-1.5">
+                    <span>🇵🇲</span> Huruf Pegon & Jawi Lengkap
+                </button>
+                <button data-tab="harakat" class="tab-btn px-4 py-2 text-xs font-bold rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 flex-shrink-0 flex items-center gap-1.5">
+                    <span>✍️</span> Harakat & Tanda Baca
+                </button>
+                <button data-tab="presets" class="tab-btn px-4 py-2 text-xs font-bold rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 flex-shrink-0 flex items-center gap-1.5">
+                    <span>⚡</span> Preset Kata Cepat
+                </button>
+            </div>
+
+            <!-- Horizontal Scrollable Option Palette Bar -->
+            <div class="relative w-full overflow-hidden">
+                <div id="palette-horizontal-bar" class="flex items-center gap-2.5 overflow-x-auto py-2.5 px-1 scrollbar-thin">
+                    <!-- Dynamic Large Preview Blocks Inserted Here -->
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Modal Crop Preview Result -->
+    <div id="preview-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white dark:bg-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-700 flex flex-col gap-4 animate-in fade-in zoom-in duration-200">
+            <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-700 pb-3">
+                <h3 class="font-bold text-slate-800 dark:text-slate-100 text-sm sm:text-base">Hasil Potongan (Crop Preview PNG)</h3>
+                <button id="btn-close-modal" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+
+            <div class="bg-slate-50 dark:bg-slate-900 rounded-2xl p-4 flex items-center justify-center min-h-[160px] border border-slate-200/60 dark:border-slate-800 bg-grid-pattern">
+                <img id="cropped-result-img" class="max-w-full max-h-[220px] object-contain rounded-lg shadow-md" alt="Hasil Crop">
+            </div>
+
+            <div class="flex gap-2 pt-1">
+                <button id="btn-modal-download" class="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-md shadow-emerald-600/20">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                    Download PNG
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="fixed bottom-5 right-5 z-50 transform translate-y-16 opacity-0 transition-all duration-300 bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-4 py-2.5 rounded-xl text-xs font-semibold shadow-2xl flex items-center gap-2 pointer-events-none">
+        <span id="toast-message">Notifikasi</span>
+    </div>
+
+    <!-- Application Engine Script -->
+    <script>
+        // Comprehensive Database of Arabic Hijaiyah, Pegon/Jawi, and Harakat
+        const BLOCKS_DATA = {
+            hijaiyah: [
+                { id: 'alif', label: 'Alif', char: 'ا', latin: 'A' },
+                { id: 'ba', label: 'Ba', char: 'ب', latin: 'B' },
+                { id: 'ta', label: 'Ta', char: 'ت', latin: 'T' },
+                { id: 'tsa', label: 'Tsa', char: 'ث', latin: 'Ts' },
+                { id: 'jim', label: 'Jim', char: 'ج', latin: 'J' },
+                { id: 'ha', label: 'Ha', char: 'ح', latin: 'H' },
+                { id: 'kho', label: 'Kho', char: 'خ', latin: 'Kh' },
+                { id: 'dal', label: 'Dal', char: 'د', latin: 'D' },
+                { id: 'dzal', label: 'Dzal', char: 'ذ', latin: 'Dz' },
+                { id: 'ra', label: 'Ra', char: 'ر', latin: 'R' },
+                { id: 'zai', label: 'Zai', char: 'ز', latin: 'Z' },
+                { id: 'sin', label: 'Sin', char: 'س', latin: 'S' },
+                { id: 'syin', label: 'Syin', char: 'ش', latin: 'Sy' },
+                { id: 'shad', label: 'Shad', char: 'ص', latin: 'Sh' },
+                { id: 'dhad', label: 'Dhad', char: 'ض', latin: 'Dh' },
+                { id: 'tha', label: 'Tha', char: 'ط', latin: 'Th' },
+                { id: 'zha', label: 'Zha', char: 'ظ', latin: 'Zh' },
+                { id: 'ain', label: 'Ain', char: 'ع', latin: '\'' },
+                { id: 'ghain', label: 'Ghain', char: 'غ', latin: 'Gh' },
+                { id: 'fa', label: 'Fa', char: 'ف', latin: 'F' },
+                { id: 'qaf', label: 'Qaf', char: 'ق', latin: 'Q' },
+                { id: 'kaf', label: 'Kaf', char: 'ك', latin: 'K' },
+                { id: 'lam', label: 'Lam', char: 'ل', latin: 'L' },
+                { id: 'mim', label: 'Mim', char: 'م', latin: 'M' },
+                { id: 'nun', label: 'Nun', char: 'ن', latin: 'N' },
+                { id: 'wawu', label: 'Wawu', char: 'و', latin: 'W' },
+                { id: 'haa', label: 'Ha (H)', char: 'هـ', latin: 'H' },
+                { id: 'ya', label: 'Ya', char: 'ي', latin: 'Y' },
+                { id: 'hamzah', label: 'Hamzah', char: 'ء', latin: '\'' },
+                { id: 'alif_maqsura', label: 'Alif Maqsura', char: 'ى', latin: 'A' },
+                { id: 'ta_marbutah', label: 'Ta Marbutah', char: 'ة', latin: 'T' }
+            ],
+            pegon: [
+                { id: 'ca', label: 'Cha (Pegon/Jawi)', char: 'چ', latin: 'C / Ch' },
+                { id: 'nga', label: 'Nga (Pegon/Jawi)', char: 'ڠ', latin: 'Ng' },
+                { id: 'pa', label: 'Pa (Pegon/Jawi)', char: 'ڤ', latin: 'P' },
+                { id: 'ga', label: 'Ga (Pegon/Jawi)', char: 'ݢ', latin: 'G' },
+                { id: 'nya', label: 'Nya (Pegon/Jawi)', char: 'ۑ', latin: 'Ny' },
+                { id: 'va', label: 'Va (Pegon/Jawi)', char: 'ۏ', latin: 'V' },
+                { id: 'nya_alt', label: 'Nya (Melayu/Jawi)', char: 'ڽ', latin: 'Ny' },
+                { id: 'ka_pegon', label: 'Kaf Dot 3 (Pegon)', char: 'ݣ', latin: 'G / K' },
+                { id: 'fa_dot3', label: 'Fa Dot 3 (Pegon)', char: 'ڢ', latin: 'P / F' },
+                { id: 'dal_dot3', label: 'Dal Dot 3 (Pegon)', char: 'ݙ', latin: 'Dh' },
+                { id: 'ta_dot3', label: 'Ta Dot 3 (Pegon)', char: 'ݭ', latin: 'Th' }
+            ],
+            harakat: [
+                { id: 'fathah', label: 'Fathah (a)', char: 'َ', latin: 'a', type: 'mark' },
+                { id: 'kasrah', label: 'Kasrah (i)', char: 'ِ', latin: 'i', type: 'mark' },
+                { id: 'dammah', label: 'Dammah (u)', char: 'ُ', latin: 'u', type: 'mark' },
+                { id: 'sukun', label: 'Sukun (Mati)', char: 'ْ', latin: '°', type: 'mark' },
+                { id: 'tasydid', label: 'Tasydid (Double)', char: 'ّ', latin: 'ˇ', type: 'mark' },
+                { id: 'fathatai', label: 'Fathatain (an)', char: 'ً', latin: 'an', type: 'mark' },
+                { id: 'kasratain', label: 'Kasratain (in)', char: 'ٍ', latin: 'in', type: 'mark' },
+                { id: 'dammatain', label: 'Dammatain (un)', char: 'ٌ', latin: 'un', type: 'mark' },
+                { id: 'alif_khanfariyah', label: 'Fathah Tegak (â)', char: 'ٰ', latin: 'â', type: 'mark' },
+                { id: 'maddah', label: 'Maddah (Panjang)', char: 'ٓ', latin: '~', type: 'mark' },
+                { id: 'pepet_pegon', label: 'Pepet / E-Taling', char: 'ٞ', latin: 'e', type: 'mark' }
+            ]
+        };
+
+        // Extended Quick Word Presets
+        const PRESETS = [
+            {
+                name: 'Aba (أَبَا)',
+                blocks: [
+                    { char: 'ا', label: 'Alif', latin: 'A' },
+                    { char: 'َ', label: 'Fathah', latin: 'a', type: 'mark' },
+                    { char: 'ب', label: 'Ba', latin: 'B' },
+                    { char: 'َ', label: 'Fathah', latin: 'a', type: 'mark' },
+                    { char: 'ا', label: 'Alif', latin: 'A' }
+                ]
+            },
+            {
+                name: 'Bata (بَتَا)',
+                blocks: [
+                    { char: 'ب', label: 'Ba', latin: 'B' },
+                    { char: 'َ', label: 'Fathah', latin: 'a', type: 'mark' },
+                    { char: 'ت', label: 'Ta', latin: 'T' },
+                    { char: 'َ', label: 'Fathah', latin: 'a', type: 'mark' },
+                    { char: 'ا', label: 'Alif', latin: 'A' }
+                ]
+            },
+            {
+                name: 'Saya (سَايَا)',
+                blocks: [
+                    { char: 'س', label: 'Sin', latin: 'S' },
+                    { char: 'َ', label: 'Fathah', latin: 'a', type: 'mark' },
+                    { char: 'ا', label: 'Alif', latin: 'A' },
+                    { char: 'ي', label: 'Ya', latin: 'Y' },
+                    { char: 'َ', label: 'Fathah', latin: 'a', type: 'mark' },
+                    { char: 'ا', label: 'Alif', latin: 'A' }
+                ]
+            },
+            {
+                name: 'Cinta (چِنْتَا)',
+                blocks: [
+                    { char: 'چ', label: 'Cha', latin: 'C' },
+                    { char: 'ِ', label: 'Kasrah', latin: 'i', type: 'mark' },
+                    { char: 'ن', label: 'Nun', latin: 'N' },
+                    { char: 'ْ', label: 'Sukun', latin: '', type: 'mark' },
+                    { char: 'ت', label: 'Ta', latin: 'T' },
+                    { char: 'َ', label: 'Fathah', latin: 'a', type: 'mark' },
+                    { char: 'ا', label: 'Alif', latin: 'A' }
+                ]
+            },
+            {
+                name: 'Buku (بُكُ)',
+                blocks: [
+                    { char: 'ب', label: 'Ba', latin: 'B' },
+                    { char: 'ُ', label: 'Dammah', latin: 'u', type: 'mark' },
+                    { char: 'ك', label: 'Kaf', latin: 'K' },
+                    { char: 'ُ', label: 'Dammah', latin: 'u', type: 'mark' }
+                ]
+            },
+            {
+                name: 'Aceh (آچَيِهْ)',
+                blocks: [
+                    { char: 'ا', label: 'Alif', latin: 'A' },
+                    { char: 'ٓ', label: 'Maddah', latin: '~', type: 'mark' },
+                    { char: 'چ', label: 'Cha', latin: 'C' },
+                    { char: 'َ', label: 'Fathah', latin: 'a', type: 'mark' },
+                    { char: 'ي', label: 'Ya', latin: 'Y' },
+                    { char: 'ِ', label: 'Kasrah', latin: 'i', type: 'mark' },
+                    { char: 'هـ', label: 'Ha', latin: 'H' },
+                    { char: 'ْ', label: 'Sukun', latin: '', type: 'mark' }
+                ]
+            },
+            {
+                name: 'Indonesia (إِنْدَوْنِيْسِيَا)',
+                blocks: [
+                    { char: 'ا', label: 'Alif', latin: 'I' },
+                    { char: 'ِ', label: 'Kasrah', latin: 'i', type: 'mark' },
+                    { char: 'ن', label: 'Nun', latin: 'N' },
+                    { char: 'ْ', label: 'Sukun', latin: '', type: 'mark' },
+                    { char: 'د', label: 'Dal', latin: 'D' },
+                    { char: 'َ', label: 'Fathah', latin: 'a', type: 'mark' },
+                    { char: 'و', label: 'Wawu', latin: 'O' },
+                    { char: 'ن', label: 'Nun', latin: 'N' },
+                    { char: 'ِ', label: 'Kasrah', latin: 'i', type: 'mark' },
+                    { char: 'ي', label: 'Ya', latin: 'Y' },
+                    { char: 'س', label: 'Sin', latin: 'S' },
+                    { char: 'ِ', label: 'Kasrah', latin: 'i', type: 'mark' },
+                    { char: 'ي', label: 'Ya', latin: 'Y' },
+                    { char: 'َ', label: 'Fathah', latin: 'a', type: 'mark' },
+                    { char: 'ا', label: 'Alif', latin: 'A' }
+                ]
+            },
+            {
+                name: 'Bismillah (بِسْمِ اللَّهِ)',
+                blocks: [
+                    { char: 'ب', label: 'Ba', latin: 'B' },
+                    { char: 'ِ', label: 'Kasrah', latin: 'i', type: 'mark' },
+                    { char: 'س', label: 'Sin', latin: 'S' },
+                    { char: 'ْ', label: 'Sukun', latin: '', type: 'mark' },
+                    { char: 'م', label: 'Mim', latin: 'M' },
+                    { char: 'ِ', label: 'Kasrah', latin: 'i', type: 'mark' },
+                    { char: ' ', label: 'Spasi', latin: ' ' },
+                    { char: 'ا', label: 'Alif', latin: 'A' },
+                    { char: 'ل', label: 'Lam', latin: 'L' },
+                    { char: 'ل', label: 'Lam', latin: 'L' },
+                    { char: 'ّ', label: 'Tasydid', latin: '', type: 'mark' },
+                    { char: 'ٰ', label: 'Fathah Tegak', latin: '', type: 'mark' },
+                    { char: 'هـ', label: 'Ha', latin: 'H' },
+                    { char: 'ِ', label: 'Kasrah', latin: 'i', type: 'mark' }
+                ]
+            }
+        ];
+
+        // Global State
+        let assembledBlocks = [];
+        let activeTab = 'hijaiyah';
+        let fontSize = 80;
+        let fontColor = '#0f172a';
+        let canvasBgStyle = 'auto';
+        let isCropVisible = true;
+        let dragSrcIndex = null;
+
+        // Interactive Crop State
+        let cropState = {
+            x: 50,
+            y: 55,
+            width: 260,
+            height: 150,
+            isDragging: false,
+            isResizing: false,
+            resizeHandle: null,
+            startX: 0,
+            startY: 0,
+            startWidth: 0,
+            startHeight: 0,
+            startLeft: 0,
+            startTop: 0
+        };
+
+        // DOM Elements
+        const paletteBar = document.getElementById('palette-horizontal-bar');
+        const assemblyBoard = document.getElementById('assembly-board');
+        const emptyState = document.getElementById('empty-state');
+        const canvas = document.getElementById('main-canvas');
+        const ctx = canvas.getContext('2d');
+        const canvasWrapper = document.getElementById('canvas-wrapper');
+        const cropBox = document.getElementById('crop-box');
+        const fontSizeSlider = document.getElementById('font-size-slider');
+        const fontSizeVal = document.getElementById('font-size-val');
+        const textColorPicker = document.getElementById('text-color-picker');
+        const canvasBgPicker = document.getElementById('canvas-bg-picker');
+
+        // Window Load Handler
+        window.onload = function() {
+            renderHorizontalPalette();
+            setupTabs();
+            setupSearch();
+            setupCanvas();
+            setupCropBoxEvents();
+            setupThemeToggle();
+
+            // Load initial default word preset ("Aba")
+            loadPreset(0);
+
+            // Responsive redraw
+            window.addEventListener('resize', () => {
+                drawCanvas();
+            });
+        };
+
+        // Load Preset into Assembly Track
+        function loadPreset(index) {
+            const preset = PRESETS[index];
+            if (!preset) return;
+            assembledBlocks = preset.blocks.map(b => ({ ...b, instanceId: Date.now() + Math.random() }));
+            updateAssemblyBoard();
+            showToast(`Preset "${preset.name}" berhasil dimuat!`);
+        }
+
+        // Setup Tab Switching
+        function setupTabs() {
+            const tabs = document.querySelectorAll('.tab-btn');
+            tabs.forEach(tab => {
+                tab.addEventListener('click', (e) => {
+                    tabs.forEach(t => {
+                        t.className = 'tab-btn px-4 py-2 text-xs font-bold rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 flex-shrink-0 flex items-center gap-1.5';
+                    });
+                    const target = e.currentTarget;
+                    target.className = 'tab-btn px-4 py-2 text-xs font-bold rounded-xl bg-emerald-500 text-white shadow-sm flex-shrink-0 flex items-center gap-1.5';
+                    activeTab = target.getAttribute('data-tab');
+                    renderHorizontalPalette();
+                });
+            });
+        }
+
+        // Render Horizontal Options Palette Bar
+        function renderHorizontalPalette(query = '') {
+            paletteBar.innerHTML = '';
+
+            // Presets Category
+            if (activeTab === 'presets') {
+                PRESETS.forEach((preset, idx) => {
+                    if (query && !preset.name.toLowerCase().includes(query.toLowerCase())) return;
+                    
+                    const btn = document.createElement('button');
+                    btn.className = 'block-card p-3 rounded-2xl border border-slate-200 dark:border-slate-700/80 bg-slate-50 dark:bg-slate-900/50 hover:border-emerald-500 hover:bg-emerald-50/60 dark:hover:bg-emerald-950/40 text-slate-800 dark:text-slate-200 flex flex-col items-center justify-between min-w-[130px] h-[92px] flex-shrink-0 shadow-sm group';
+                    btn.innerHTML = `
+                        <span class="font-arabic text-2xl font-bold text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform">${preset.name.split(' ')[1] || preset.name}</span>
+                        <span class="text-[11px] font-bold text-slate-700 dark:text-slate-300 truncate max-w-full">${preset.name.split(' ')[0]}</span>
+                    `;
+                    btn.addEventListener('click', () => loadPreset(idx));
+                    paletteBar.appendChild(btn);
+                });
+                return;
+            }
+
+            // Normal Character / Harakat Items
+            const list = BLOCKS_DATA[activeTab] || [];
+            const filtered = list.filter(item => 
+                item.label.toLowerCase().includes(query.toLowerCase()) || 
+                item.latin.toLowerCase().includes(query.toLowerCase()) ||
+                item.char.includes(query)
+            );
+
+            if (filtered.length === 0) {
+                paletteBar.innerHTML = `<div class="text-xs text-slate-400 text-center py-6 w-full">Tidak ada opsi ditemukan</div>`;
+                return;
+            }
+
+            filtered.forEach(item => {
+                const isMark = item.type === 'mark';
+                const card = document.createElement('button');
+                card.className = `block-card p-2.5 rounded-2xl border flex flex-col items-center justify-between min-w-[76px] sm:min-w-[84px] h-[92px] flex-shrink-0 shadow-sm ${
+                    isMark 
+                        ? 'bg-amber-50/80 dark:bg-amber-950/30 border-amber-200 dark:border-amber-900/50 hover:border-amber-400' 
+                        : 'bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-700/80 hover:border-emerald-500'
+                }`;
+
+                card.innerHTML = `
+                    <span class="text-3xl font-arabic font-bold ${isMark ? 'text-amber-600 dark:text-amber-400' : 'text-slate-800 dark:text-slate-100'} leading-none mt-1">${isMark ? '◌' + item.char : item.char}</span>
+                    <span class="text-[10px] font-bold ${isMark ? 'text-amber-700 dark:text-amber-300' : 'text-slate-600 dark:text-slate-400'} truncate max-w-full tracking-tight">${item.latin}</span>
+                `;
+
+                card.addEventListener('click', () => {
+                    addBlockToAssembly(item);
+                });
+
+                paletteBar.appendChild(card);
+            });
+        }
+
+        // Setup Live Search Filter
+        function setupSearch() {
+            const searchInput = document.getElementById('search-blocks');
+            searchInput.addEventListener('input', (e) => {
+                renderHorizontalPalette(e.target.value);
+            });
+        }
+
+        // Add Selected Block to Assembly Board
+        function addBlockToAssembly(blockItem) {
+            assembledBlocks.push({
+                ...blockItem,
+                instanceId: Date.now() + Math.random()
+            });
+            updateAssemblyBoard();
+        }
+
+        // Update Assembly Track UI
+        function updateAssemblyBoard() {
+            assemblyBoard.innerHTML = '';
+
+            if (assembledBlocks.length === 0) {
+                assemblyBoard.appendChild(emptyState);
+                drawCanvas();
+                return;
+            }
+
+            // Render blocks in RTL order
+            assembledBlocks.forEach((item, index) => {
+                const isMark = item.type === 'mark';
+                const el = document.createElement('div');
+                el.draggable = true;
+                el.dataset.index = index;
+
+                el.className = `group relative flex flex-col items-center justify-between p-2 rounded-2xl border-2 transition-all cursor-grab active:cursor-grabbing min-w-[62px] h-[82px] flex-shrink-0 ${
+                    isMark 
+                        ? 'bg-amber-100/90 dark:bg-amber-950/50 border-amber-300 dark:border-amber-700 text-amber-950 dark:text-amber-200' 
+                        : 'bg-white dark:bg-slate-700 border-emerald-400 dark:border-emerald-600 text-slate-800 dark:text-slate-100 shadow-sm'
+                }`;
+
+                el.innerHTML = `
+                    <button class="btn-remove-block absolute -top-2 -right-2 bg-rose-500 text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition-opacity shadow-sm" title="Hapus">✕</button>
+                    <span class="text-3xl font-arabic font-bold leading-none mt-1">${isMark ? '◌' + item.char : item.char}</span>
+                    <span class="text-[9px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-300 truncate max-w-[50px]">${item.latin || item.label}</span>
+                `;
+
+                // Handle Delete Single Block
+                const removeBtn = el.querySelector('.btn-remove-block');
+                removeBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    assembledBlocks.splice(index, 1);
+                    updateAssemblyBoard();
+                });
+
+                // Drag & Drop Reordering Event Handling
+                el.addEventListener('dragstart', (e) => {
+                    dragSrcIndex = index;
+                    e.dataTransfer.effectAllowed = 'move';
+                    el.classList.add('opacity-40');
+                });
+
+                el.addEventListener('dragend', () => {
+                    el.classList.remove('opacity-40');
+                });
+
+                el.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                });
+
+                el.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    if (dragSrcIndex !== null && dragSrcIndex !== index) {
+                        const targetIndex = index;
+                        const movedItem = assembledBlocks.splice(dragSrcIndex, 1)[0];
+                        assembledBlocks.splice(targetIndex, 0, movedItem);
+                        updateAssemblyBoard();
+                    }
+                });
+
+                assemblyBoard.appendChild(el);
+            });
+
+            drawCanvas();
+        }
+
+        // Get Unicode Combined Text
+        function getCombinedText() {
+            return assembledBlocks.map(b => b.char).join('');
+        }
+
+        // Main Canvas Renderer Engine
+        function setupCanvas() {
+            fontSizeSlider.addEventListener('input', (e) => {
+                fontSize = parseInt(e.target.value);
+                fontSizeVal.innerText = fontSize;
+                drawCanvas();
+            });
+
+            textColorPicker.addEventListener('input', (e) => {
+                fontColor = e.target.value;
+                drawCanvas();
+            });
+
+            canvasBgPicker.addEventListener('change', (e) => {
+                canvasBgStyle = e.target.value;
+                drawCanvas();
+            });
+
+            document.getElementById('btn-clear-all').addEventListener('click', () => {
+                assembledBlocks = [];
+                updateAssemblyBoard();
+                showToast('Canvas telah dibersihkan');
+            });
+
+            document.getElementById('btn-copy-text').addEventListener('click', () => {
+                const text = getCombinedText();
+                if (!text) {
+                    showToast('Belum ada teks untuk disalin!');
+                    return;
+                }
+                
+                const tempInput = document.createElement('textarea');
+                tempInput.value = text;
+                document.body.appendChild(tempInput);
+                tempInput.select();
+                try {
+                    document.execCommand('copy');
+                    showToast(`Teks Arab berhasil disalin!`);
+                } catch (err) {
+                    showToast('Gagal menyalin teks');
+                }
+                document.body.removeChild(tempInput);
+            });
+
+            // Toggle Crop Overlay Box Visibility
+            const toggleCropBtn = document.getElementById('btn-toggle-crop');
+            toggleCropBtn.addEventListener('click', () => {
+                isCropVisible = !isCropVisible;
+                cropBox.style.display = isCropVisible ? 'block' : 'none';
+                document.getElementById('crop-btn-text').innerText = isCropVisible ? 'Bingkai Crop Aktif' : 'Tampilkan Crop';
+            });
+
+            // Trigger Crop Modal
+            document.getElementById('btn-download-crop').addEventListener('click', () => {
+                generateCropImage(true);
+            });
+
+            // Modal Close Controls
+            document.getElementById('btn-close-modal').addEventListener('click', () => {
+                document.getElementById('preview-modal').classList.add('hidden');
+            });
+
+            drawCanvas();
+        }
+
+        // Redraw Main Canvas Context
+        function drawCanvas() {
+            const wrapperWidth = canvasWrapper.clientWidth || 700;
+            const wrapperHeight = 260;
+
+            canvas.width = wrapperWidth;
+            canvas.height = wrapperHeight;
+
+            // Reset Context
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Set Background Fill
+            const isDark = document.documentElement.classList.contains('dark');
+            let bgColor = isDark ? '#0f172a' : '#ffffff';
+            if (canvasBgStyle !== 'auto') {
+                bgColor = canvasBgStyle;
+            }
+
+            if (bgColor !== 'transparent') {
+                ctx.fillStyle = bgColor;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+
+            const text = getCombinedText();
+            if (!text) {
+                // Placeholder Instructions
+                ctx.font = '15px "Plus Jakarta Sans", sans-serif';
+                ctx.fillStyle = isDark ? '#475569' : '#94a3b8';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('Hasil Sambungan Kalimat Arab / Pegon Akan Muncul Di Sini', canvas.width / 2, canvas.height / 2);
+                return;
+            }
+
+            // Draw Joined Script Arabic Calligraphy Text
+            ctx.font = `${fontSize}px "Amiri", "Noto Sans Arabic", serif`;
+            ctx.fillStyle = fontColor;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            // Soft Drop Shadow Effect
+            ctx.shadowColor = 'rgba(0,0,0,0.12)';
+            ctx.shadowBlur = 8;
+            ctx.shadowOffsetY = 4;
+
+            ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+
+            // Reset Shadow
+            ctx.shadowColor = 'transparent';
+        }
+
+        // Interactive Crop Box Controller
+        function setupCropBoxEvents() {
+            let activeHandle = null;
+
+            updateCropBoxDOM();
+
+            cropBox.addEventListener('mousedown', (e) => {
+                if (e.target.classList.contains('crop-handle')) {
+                    cropState.isResizing = true;
+                    activeHandle = e.target.getAttribute('data-handle');
+                } else {
+                    cropState.isDragging = true;
+                }
+                cropState.startX = e.clientX;
+                cropState.startY = e.clientY;
+                cropState.startWidth = cropState.width;
+                cropState.startHeight = cropState.height;
+                cropState.startLeft = cropState.x;
+                cropState.startTop = cropState.y;
+
+                e.preventDefault();
+            });
+
+            window.addEventListener('mousemove', (e) => {
+                if (!cropState.isDragging && !cropState.isResizing) return;
+
+                const dx = e.clientX - cropState.startX;
+                const dy = e.clientY - cropState.startY;
+                const wrapperRect = canvasWrapper.getBoundingClientRect();
+
+                if (cropState.isDragging) {
+                    let newX = cropState.startLeft + dx;
+                    let newY = cropState.startTop + dy;
+
+                    newX = Math.max(0, Math.min(newX, wrapperRect.width - cropState.width));
+                    newY = Math.max(0, Math.min(newY, wrapperRect.height - cropState.height));
+
+                    cropState.x = newX;
+                    cropState.y = newY;
+                } else if (cropState.isResizing) {
+                    if (activeHandle === 'se') {
+                        cropState.width = Math.max(60, Math.min(cropState.startWidth + dx, wrapperRect.width - cropState.x));
+                        cropState.height = Math.max(40, Math.min(cropState.startHeight + dy, wrapperRect.height - cropState.y));
+                    } else if (activeHandle === 'sw') {
+                        const newWidth = Math.max(60, cropState.startWidth - dx);
+                        if (newWidth !== cropState.width && cropState.startLeft + dx >= 0) {
+                            cropState.x = cropState.startLeft + dx;
+                            cropState.width = newWidth;
+                        }
+                        cropState.height = Math.max(40, Math.min(cropState.startHeight + dy, wrapperRect.height - cropState.y));
+                    } else if (activeHandle === 'nw') {
+                        const newWidth = Math.max(60, cropState.startWidth - dx);
+                        const newHeight = Math.max(40, cropState.startHeight - dy);
+                        if (newWidth !== cropState.width && cropState.startLeft + dx >= 0) {
+                            cropState.x = cropState.startLeft + dx;
+                            cropState.width = newWidth;
+                        }
+                        if (newHeight !== cropState.height && cropState.startTop + dy >= 0) {
+                            cropState.y = cropState.startTop + dy;
+                            cropState.height = newHeight;
+                        }
+                    } else if (activeHandle === 'ne') {
+                        cropState.width = Math.max(60, Math.min(cropState.startWidth + dx, wrapperRect.width - cropState.x));
+                        const newHeight = Math.max(40, cropState.startHeight - dy);
+                        if (newHeight !== cropState.height && cropState.startTop + dy >= 0) {
+                            cropState.y = cropState.startTop + dy;
+                            cropState.height = newHeight;
+                        }
+                    }
+                }
+
+                updateCropBoxDOM();
+            });
+
+            window.addEventListener('mouseup', () => {
+                cropState.isDragging = false;
+                cropState.isResizing = false;
+                activeHandle = null;
+            });
+
+            // Touch Drag Support for Mobile Devices
+            cropBox.addEventListener('touchstart', (e) => {
+                const touch = e.touches[0];
+                if (e.target.classList.contains('crop-handle')) {
+                    cropState.isResizing = true;
+                    activeHandle = e.target.getAttribute('data-handle');
+                } else {
+                    cropState.isDragging = true;
+                }
+                cropState.startX = touch.clientX;
+                cropState.startY = touch.clientY;
+                cropState.startWidth = cropState.width;
+                cropState.startHeight = cropState.height;
+                cropState.startLeft = cropState.x;
+                cropState.startTop = cropState.y;
+            });
+
+            window.addEventListener('touchmove', (e) => {
+                if (!cropState.isDragging && !cropState.isResizing) return;
+                const touch = e.touches[0];
+                const dx = touch.clientX - cropState.startX;
+                const dy = touch.clientY - touch.startY;
+                const wrapperRect = canvasWrapper.getBoundingClientRect();
+
+                if (cropState.isDragging) {
+                    let newX = cropState.startLeft + dx;
+                    let newY = cropState.startTop + dy;
+
+                    newX = Math.max(0, Math.min(newX, wrapperRect.width - cropState.width));
+                    newY = Math.max(0, Math.min(newY, wrapperRect.height - cropState.height));
+
+                    cropState.x = newX;
+                    cropState.y = newY;
+                }
+                updateCropBoxDOM();
+            });
+
+            window.addEventListener('touchend', () => {
+                cropState.isDragging = false;
+                cropState.isResizing = false;
+            });
+        }
+
+        function updateCropBoxDOM() {
+            cropBox.style.left = `${cropState.x}px`;
+            cropBox.style.top = `${cropState.y}px`;
+            cropBox.style.width = `${cropState.width}px`;
+            cropBox.style.height = `${cropState.height}px`;
+        }
+
+        // Generate Crop PNG Image Result
+        function generateCropImage(openModal = false) {
+            const text = getCombinedText();
+            if (!text) {
+                showToast('Canvas kosong! Susun huruf terlebih dahulu.');
+                return;
+            }
+
+            const cropCanvas = document.createElement('canvas');
+            const cropCtx = cropCanvas.getContext('2d');
+
+            cropCanvas.width = cropState.width;
+            cropCanvas.height = cropState.height;
+
+            // Copy crop area from main canvas
+            cropCtx.drawImage(
+                canvas,
+                cropState.x, cropState.y, cropState.width, cropState.height,
+                0, 0, cropState.width, cropState.height
+            );
+
+            const dataURL = cropCanvas.toDataURL('image/png');
+
+            if (openModal) {
+                const imgModal = document.getElementById('cropped-result-img');
+                imgModal.src = dataURL;
+
+                const downloadBtnModal = document.getElementById('btn-modal-download');
+                downloadBtnModal.onclick = () => {
+                    downloadDataURL(dataURL, `pegon-crop-${Date.now()}.png`);
+                };
+
+                document.getElementById('preview-modal').classList.remove('hidden');
+            } else {
+                downloadDataURL(dataURL, `pegon-crop-${Date.now()}.png`);
+            }
+        }
+
+        function downloadDataURL(dataurl, filename) {
+            const link = document.createElement('a');
+            link.href = dataurl;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showToast('Gambar PNG berhasil diunduh!');
+        }
+
+        // Theme Toggle Setup
+        function setupThemeToggle() {
+            const btn = document.getElementById('btn-theme-toggle');
+            const sunIcon = document.getElementById('theme-icon-sun');
+            const moonIcon = document.getElementById('theme-icon-moon');
+
+            btn.addEventListener('click', () => {
+                const isDark = document.documentElement.classList.toggle('dark');
+                if (isDark) {
+                    sunIcon.classList.remove('hidden');
+                    moonIcon.classList.add('hidden');
+                } else {
+                    sunIcon.classList.add('hidden');
+                    moonIcon.classList.remove('hidden');
+                }
+                drawCanvas();
+            });
+        }
+
+        // Toast Notification Display Helper
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toast-message');
+
+            toastMsg.innerText = message;
+            toast.classList.remove('translate-y-16', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-16', 'opacity-0');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
